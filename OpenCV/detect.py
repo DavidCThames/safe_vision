@@ -12,22 +12,48 @@ import io
 
 # cap = cv2.VideoCapture(0)
 
+#Start server for Unity Script
+s = socket.socket()
+host = "localhost"
+port = 8800
+s.bind((host, port))
+
+s.listen(1)
+
+
+# construct the argument parse and parse the arguments
+ap = argparse.ArgumentParser()
+# ap.add_argument("-i", "--image", required=True,
+#     help="path to the input image")
+ap.add_argument("-w", "--win-stride", type=str, default="(8, 8)",
+    help="window stride")
+ap.add_argument("-p", "--padding", type=str, default="(16, 16)",
+    help="object padding")
+ap.add_argument("-s", "--scale", type=float, default=1.05,
+    help="image pyramid scale")
+ap.add_argument("-m", "--mean-shift", type=int, default=-1,
+    help="whether or not mean shift grouping should be used")
+args = vars(ap.parse_args())
+
+# evaluate the command line arguments (using the eval function like
+# this is not good form, but let's tolerate it for the example)
+winStride = eval(args["win_stride"])
+padding = eval(args["padding"])
+meanShift = True if args["mean_shift"] > 0 else False
+
+# initialize the HOG descriptor/person detector
+hog = cv2.HOGDescriptor()
+hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+
 
 
 i = 0
 people = []
-while(True):
-    #Start server for Unity Script
-    s = socket.socket()
-    host = "localhost"
-    port = 8800
-    s.bind((host, port))
-
-    s.listen(1)
+while(i < 6):
+    
     print("Waiting for a connection...")
-
     c, addr = s.accept()
-    print("Connection from: " + str(addr))
+    # print("Connection from: " + str(addr))
 
     img_data = c.recv(1024)
     while True:
@@ -38,35 +64,10 @@ while(True):
     
     # print(img_data)
     nparr = np.fromstring(img_data, np.uint8)
-    image = cv2.imdecode(nparr, cv2.CV_LOAD_IMAGE_COLOR)
+    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     # ret, image = cap.read()
     # image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-
-    # construct the argument parse and parse the arguments
-    ap = argparse.ArgumentParser()
-    # ap.add_argument("-i", "--image", required=True,
-    #     help="path to the input image")
-    ap.add_argument("-w", "--win-stride", type=str, default="(8, 8)",
-        help="window stride")
-    ap.add_argument("-p", "--padding", type=str, default="(16, 16)",
-        help="object padding")
-    ap.add_argument("-s", "--scale", type=float, default=1.05,
-        help="image pyramid scale")
-    ap.add_argument("-m", "--mean-shift", type=int, default=-1,
-        help="whether or not mean shift grouping should be used")
-    args = vars(ap.parse_args())
-
-    # evaluate the command line arguments (using the eval function like
-    # this is not good form, but let's tolerate it for the example)
-    winStride = eval(args["win_stride"])
-    padding = eval(args["padding"])
-    meanShift = True if args["mean_shift"] > 0 else False
-
-    # initialize the HOG descriptor/person detector
-    hog = cv2.HOGDescriptor()
-    hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
     # load the image and resize it
     # image = cv2.imread(args["image"])
@@ -112,13 +113,12 @@ while(True):
         sys.stdout.write('[' + str(x) + ',' + str(y) + ',' + str(w) + ',' + str(h) + ']')
     sys.stdout.write(']\n')
 
-    i = 0
     people = []
 
     sys.stdout.flush()
-    # cv2.imshow("Detections", image)
-    # if cv2.waitKey(10) & 0xFF == ord('q'):
-    #     break
+    cv2.imshow("Detections", image)
+    if cv2.waitKey(10) & 0xFF == ord('q'):
+        break
+    i = i + 1
 
-cap.release()
 cv2.destroyAllWindows()
