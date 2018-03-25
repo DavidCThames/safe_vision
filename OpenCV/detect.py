@@ -5,11 +5,13 @@ import datetime
 import imutils
 import cv2
 import numpy as np
+import sys
 
 cap = cv2.VideoCapture(0)
 
+i = 0
+people = []
 while(True):
-
     ret, image = cap.read()
     # image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -42,29 +44,48 @@ while(True):
     # image = cv2.imread(args["image"])
     image = imutils.resize(image, width=min(400, image.shape[1]))
 
+    sys.stdout.write('[')
+    for index, (x, y, w, h) in enumerate(people):
+        if (index != 0):
+            sys.stdout.write(',')
+        sys.stdout.write('[' + str(x) + ',' + str(y) + ',' + str(w) + ',' + str(h) + ']')
+    sys.stdout.write(']\n')
+
+    i = 0
+    people = []
+
+        
+
+        
+
     #rotate the image by 90 deg
     image_90 = imutils.rotate_bound(image, 90)
 
 
     # detect people in the image
-    start = datetime.datetime.now()
+    # start = datetime.datetime.now()
     (rects, weights) = hog.detectMultiScale(image, winStride=winStride,
         padding=padding, scale=args["scale"], useMeanshiftGrouping=meanShift)
     (rects_90, weights_90) = hog.detectMultiScale(image_90, winStride=winStride,
         padding=padding, scale=args["scale"], useMeanshiftGrouping=meanShift)
 
-    print("[INFO] detection took: {}s".format(
-        (datetime.datetime.now() - start).total_seconds()))
+    # print("[INFO] detection took: {}s".format(
+    #    (datetime.datetime.now() - start).total_seconds()))
     
     # draw the original bounding boxes
+    
     for (x, y, w, h) in rects:
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        print("person found")
+        people.append((x, y, w, h))            
+
     for (x, y, w, h) in rects_90:
-        cv2.rectangle(image, (y, x), (y + h, x + w), (0, 255, 0), 2)
-        print("person found")
+        people.append((y, x, h, w))
+
+
+    for (x, y, w, h) in people:
+        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
     
     # show the output image
+    sys.stdout.flush()
     cv2.imshow("Detections", image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
