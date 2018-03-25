@@ -6,13 +6,41 @@ import imutils
 import cv2
 import numpy as np
 import sys
+import socket
+import io
 
-cap = cv2.VideoCapture(0)
+
+# cap = cv2.VideoCapture(0)
+
+
 
 i = 0
 people = []
 while(True):
-    ret, image = cap.read()
+    #Start server for Unity Script
+    s = socket.socket()
+    host = "localhost"
+    port = 8800
+    s.bind((host, port))
+
+    s.listen(1)
+    print("Waiting for a connection...")
+
+    c, addr = s.accept()
+    print("Connection from: " + str(addr))
+
+    img_data = c.recv(1024)
+    while True:
+        data = c.recv(1024)
+        if not data:
+            break
+        img_data += data
+    
+    # print(img_data)
+    nparr = np.fromstring(img_data, np.uint8)
+    image = cv2.imdecode(nparr, cv2.CV_LOAD_IMAGE_COLOR)
+
+    # ret, image = cap.read()
     # image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
 
@@ -44,15 +72,7 @@ while(True):
     # image = cv2.imread(args["image"])
     image = imutils.resize(image, width=min(400, image.shape[1]))
 
-    sys.stdout.write('[')
-    for index, (x, y, w, h) in enumerate(people):
-        if (index != 0):
-            sys.stdout.write(',')
-        sys.stdout.write('[' + str(x) + ',' + str(y) + ',' + str(w) + ',' + str(h) + ']')
-    sys.stdout.write(']\n')
-
-    i = 0
-    people = []
+    
 
         
 
@@ -85,10 +105,20 @@ while(True):
         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
     
     # show the output image
+    sys.stdout.write('[')
+    for index, (x, y, w, h) in enumerate(people):
+        if (index != 0):
+            sys.stdout.write(',')
+        sys.stdout.write('[' + str(x) + ',' + str(y) + ',' + str(w) + ',' + str(h) + ']')
+    sys.stdout.write(']\n')
+
+    i = 0
+    people = []
+
     sys.stdout.flush()
-    cv2.imshow("Detections", image)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    # cv2.imshow("Detections", image)
+    # if cv2.waitKey(10) & 0xFF == ord('q'):
+    #     break
 
 cap.release()
 cv2.destroyAllWindows()
